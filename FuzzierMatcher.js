@@ -285,7 +285,7 @@ const FuzzierMatcher = (() => {
         })
 
         const getWordMatchScore = (queryWord, targetWord, 
-                               getMatchedTargetIndicesInstead) => {
+                                   getMatchedTargetIndicesInstead) => {
 
             const queryCharList = queryWordCharLists.get(queryWord);
             const queryCharIndicesList = (
@@ -409,7 +409,6 @@ const FuzzierMatcher = (() => {
         const targetWordStrMultiSet = MultiSet();
         const targetWordMultiSet = MultiSet();
 
-        let queryStrLen = 0;
         let queryWordList = [];
         const queryWordMultiSet = MultiSet();
 
@@ -434,9 +433,9 @@ const FuzzierMatcher = (() => {
 
         return {
             setQuery: (str) => {
-                queryStrLen = str.length;
                 targetStrMatchedIndices.clear();
                 targetWordStrMatchScores.clear();
+                targetWordStrWordMatchedIndicesLists.clear();
                 const newQueryWordList = WordList(str);
                 for (let i=0; i<newQueryWordList.length; i++) {
                     queryWordMultiSet.push(newQueryWordList[i]);
@@ -453,11 +452,8 @@ const FuzzierMatcher = (() => {
                 queryWordList = newQueryWordList;
             },
             getScore: (targetStr) => {
-                return (
-                    similarityScores.get(targetStr.length - queryStrLen) 
-                    + targetWordStrMatchScores
-                        .get(targetStrWordStrs.get(targetStr))
-                    );
+                return targetWordStrMatchScores
+                    .get(targetStrWordStrs.get(targetStr));
             },
             getIndices: (targetStr) => {
                 return targetStrMatchedIndices.get(targetStr);
