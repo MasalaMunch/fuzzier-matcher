@@ -5,7 +5,7 @@ A string matching algorithm inspired by Forrest Smith's [fuzzy match](https://bl
 ## What makes it fuzzier?
 
 * Typos don't prevent a strong match. For example, `vrockhampton` will match strongly with `brockhampton`.
-* Thanks to string splitting, incorrect word orderings don't prevent a strong match. For example, `honey brockhampton` will match strongly with `brockhampton honey`.
+* Incorrect word orderings don't prevent a strong match. For example, `honey brockhampton` will match strongly with `brockhampton honey`.
 
 ## How fast is it?
 
@@ -33,7 +33,7 @@ A string matching algorithm inspired by Forrest Smith's [fuzzy match](https://bl
 
 `FuzzierMatcher([WordList, WordStr, WordSrcIndicesList]) -> fuzzierMatcher`
 
-* The optional parameters allow you to customize the preprocessing of strings. By default, strings are converted to lowercase and split by whitespace (see `DefaultWordList`, `DefaultWordStr`, and `DefaultWordSrcIndicesList` in the source code). To disable preprocessing, see `DumbWordList`, `DumbWordStr`, and `DumbWordSrcIndicesList` in the source code. When customizing, 
+* The optional parameters allow you to customize the preprocessing of strings. By default, strings are converted to lowercase and split by whitespace (see `DefaultWordList`, `DefaultWordStr`, and `DefaultWordSrcIndicesList` in the source code). When customizing, 
     * `WordList` must be a `(string) -> stringArray` function.
     * `WordStr` must be a `(stringArray) -> string` function. It will be used to serialize the output of `WordList`.
     * `WordSrcIndicesList` must be a `(string, stringArray) -> intArrayArray` function. It will be used if you call `fuzzierMatcher.getIndices`. It can be thought of as a way to map the output of a `WordList` call back onto its input string. For example, `DefaultWordSrcIndicesList(" My string", ["my", "string"])` returns `[[1, 2], [4, 5, 6, 7, 8, 9]]`.
