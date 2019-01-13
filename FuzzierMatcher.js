@@ -135,6 +135,7 @@ const FuzzierMatcher = (() => {
     };
     const DefaultWordStr = (wordList) => wordList.join(" ");
     const DefaultWordSrcIndicesList = (srcStr, wordList) => {
+        srcStr = srcStr.toLowerCase();
         This = new Array(wordList.length);
         if (wordList.length > 0) {
             let iSrc = 0;
@@ -159,7 +160,7 @@ const FuzzierMatcher = (() => {
     return (WordList=DefaultWordList, WordStr=DefaultWordStr, 
             WordSrcIndicesList=DefaultWordSrcIndicesList) => {
 
-        const arrayAllocator = ArrayAllocator();
+        const tmpArrays = ArrayAllocator();
 
         const getWordStrMatchScore = (targetWordStr, 
                                       getWordMatchedIndicesListInstead) => {
@@ -174,17 +175,16 @@ const FuzzierMatcher = (() => {
                 bigWordList === queryWordList? targetWordList : queryWordList
                 );
 
-            const smallHeapList = arrayAllocator.get(smallWordList.length);
-            const smallScoresList = arrayAllocator.get(smallWordList.length); 
-            const unpairedSmallListIndices = arrayAllocator.get(
+            const smallHeapList = tmpArrays.get(smallWordList.length);
+            const smallScoresList = tmpArrays.get(smallWordList.length); 
+            const unpairedSmallListIndices = tmpArrays.get(
                 smallWordList.length
                 );
             for (let i=0; i<smallWordList.length; i++) {
                 unpairedSmallListIndices[i] = i;
-                const scores = arrayAllocator.get(bigWordList.length);
+                const scores = tmpArrays.get(bigWordList.length);
                 const heap = MaxHeap(
-                    (iBig, jBig) => scores[iBig] - scores[jBig],
-                    arrayAllocator.get(),
+                    (iBig, jBig) => scores[iBig] - scores[jBig], tmpArrays.get()
                     );
                 for (let j=0; j<bigWordList.length; j++) {
                     scores[j] = (
@@ -203,8 +203,8 @@ const FuzzierMatcher = (() => {
                 heap.fix();
                 smallHeapList[i] = heap;
             }
-            const smallBigIndexList = arrayAllocator.get(smallWordList.length);
-            const bigSmallIndexList = arrayAllocator.get(bigWordList.length);
+            const smallBigIndexList = tmpArrays.get(smallWordList.length);
+            const bigSmallIndexList = tmpArrays.get(bigWordList.length);
             while (unpairedSmallListIndices.length > 0) {
                 const i = unpairedSmallListIndices.pop();
                 while (true) {
@@ -224,7 +224,7 @@ const FuzzierMatcher = (() => {
                 }
             }
 
-            arrayAllocator.release();
+            tmpArrays.release();
 
             if (getWordMatchedIndicesListInstead) {
                 if (bigWordList === queryWordList) {
@@ -262,9 +262,11 @@ const FuzzierMatcher = (() => {
             return matchScore;
 
         };
+
         const targetWordStrMatchScores = LazyMap((wordStr) => {
             return getWordStrMatchScore(wordStr);
         });
+
         const targetWordStrWordMatchedIndicesLists = LazyMap((wordStr) => {
             return getWordStrMatchScore(wordStr, true);
         });
@@ -487,7 +489,7 @@ const FuzzierMatcher = (() => {
                 }
             },
             clear: () => {
-                arrayAllocator.clear();
+                tmpArrays.clear();
                 targetWordMultiSet.clear();
                 targetWordStrMultiSet.clear();
                 targetWordStrWordLists.clear();
