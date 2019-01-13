@@ -9,8 +9,7 @@ A string matching algorithm inspired by Forrest Smith's [fuzzy match](https://bl
 
 ## How fast is it?
 
-* Complexity-wise, `match(shorterString, longerString)` is `O(shorterString.length*longerString.length)`, or `O(shorterString.length*log(longerString.length)+longerString.length)` if you disable string splitting.
-* Performance-wise, the JavaScript implementation can query databases containing up to 500,000 characters in real time on [my laptop](http://browser.geekbench.com/geekbench3/8725551).
+* The JavaScript implementation can query databases containing up to 500,000 characters in real time on [my laptop](http://browser.geekbench.com/geekbench3/8725551).
 
 ## Demo
 
@@ -47,7 +46,7 @@ A string matching algorithm inspired by Forrest Smith's [fuzzy match](https://bl
 `fuzzierMatcher.getScore(targetString) -> float`
 
 * Scores can be used to generate a ranked list of search targets. In the demo, this is done by building a max-heap of targets based on score and removing the 10 strongest matches from it.
-* Scores are cached, so calling `getScore` on the same `targetString` multiple times will not recompute the score, unless `setQuery` is called in the interim.
+* Scores are cached, so calling `getScore` on the same `targetString` multiple times will not recompute the score unless `setQuery` is called in the interim.
 
 `fuzzierMatcher.getIndices(targetString) -> intArray`
 
