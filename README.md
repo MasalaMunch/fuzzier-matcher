@@ -4,13 +4,15 @@ A string matching algorithm inspired by Forrest Smith's [fuzzy match](https://bl
 
 ## What makes it fuzzier?
 
-* Typos don't prevent a strong match. For example, `vrockhampton` will match strongly with `brockhampton`.
-* Thanks to string splitting, incorrect word orderings don't prevent a strong match. For example, `honey brockhampton` will match strongly with `brockhampton honey`.
+Typos don't prevent a strong match. For example, `vrockhampton` will match strongly with `brockhampton`.
+
+Thanks to string splitting, incorrect word orderings don't prevent a strong match. For example, `honey brockhampton` will match strongly with `brockhampton honey`.
 
 ## How fast is it?
 
-* Complexity-wise, `match(shorterString, longerString)` is `O(shorterString\*longerString)`, or `O(shorterString\*log(longerString))` if you disable string splitting.
-* Performance-wise, the JavaScript implementation can query databases containing up to 500,000 characters in real time on [my laptop](http://browser.geekbench.com/geekbench3/8725551).
+Complexity-wise, `match(shorterString, longerString)` is O(shorterString\*longerString), or O(shorterString\*log(longerString)) if you disable string splitting.
+
+Performance-wise, the JavaScript implementation can query databases containing up to 500,000 characters in real time on [my laptop](http://browser.geekbench.com/geekbench3/8725551).
 
 ## Demo
 
@@ -20,7 +22,7 @@ A string matching algorithm inspired by Forrest Smith's [fuzzy match](https://bl
 
 ## Basic Usage
 
-`
+```
 >>> fuzzierMatcher = FuzzierMatcher()
 >>> fuzzierMatcher.setQuery("search query")
 >>> fuzzierMatcher.getScore("Target of Search")
@@ -28,7 +30,7 @@ A string matching algorithm inspired by Forrest Smith's [fuzzy match](https://bl
 >>> fuzzierMatcher.getIndices("Target of Search")
 [4, 2, 10, 11, 12, 13, 14, 15]
 >>> fuzzierMatcher.delete("Target of Search")
-`
+```
 
 ## API
 
@@ -41,7 +43,7 @@ A string matching algorithm inspired by Forrest Smith's [fuzzy match](https://bl
 
 `fuzzierMatcher.setQuery(queryString)`
 
-* For example, if the user types in `Go fuck a duck`, you'll want to use `setQuery("Go fuck a duck")`. 
+* For example, if the user types `Go fuck a duck` in the search box, you'll want to use `setQuery("Go fuck a duck")`. 
 * Performance-wise, this method is "smart," in that if the previous query is `Go fuck a duc`, it will detect that only one word has changed (`duc` -> `duck`) and update the cache accordingly.
 
 `fuzzierMatcher.getScore(targetString) -> float`
