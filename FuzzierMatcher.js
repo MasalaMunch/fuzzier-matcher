@@ -1,11 +1,11 @@
 const FuzzierMatcher = (() => {
 
-    const LazyMap = (getValFromKey) => {
+    const LazyMap = (ValFromKey) => {
         const This = new Map();
         This.get = (key) => {
             let val = Map.prototype.get.call(This, key);
             if (val === undefined) {
-                val = getValFromKey(key);
+                val = ValFromKey(key);
                 This.set(key, val);
             }
             return val;
@@ -73,7 +73,7 @@ const FuzzierMatcher = (() => {
                 fixChildren(compareItems, array, i, array[i]);
             }
             return {
-                getMax: () => array[0],
+                Max: () => array[0],
                 delMax: () => fixChildren(compareItems, array, 0, array.pop()),
                 };
         };
@@ -320,7 +320,7 @@ const FuzzierMatcher = (() => {
                 const i = unpairedSmallListIndices.pop();
                 const bigListIndexHeap = smallBigListIndexHeapList[i];
                 while (true) {
-                    const j = bigListIndexHeap.getMax();
+                    const j = bigListIndexHeap.Max();
                     const iConflict = bigSmallIndexList[j];
                     if (iConflict === undefined || smallScoresList[i][j] 
                     > smallScoresList[iConflict][j]) {
