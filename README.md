@@ -9,7 +9,7 @@ A string matching algorithm inspired by Forrest Smith's [fuzzy match](https://bl
 
 ## How fast is it?
 
-* The JavaScript implementation can query databases containing up to 500,000 characters in real time on [my laptop](http://browser.geekbench.com/geekbench3/8725551).
+* The JavaScript implementation can query databases containing up to 70,000 characters in real time on [my laptop](https://browser.geekbench.com/macs/437).
 
 ## Demo
 
@@ -59,4 +59,4 @@ A string matching algorithm inspired by Forrest Smith's [fuzzy match](https://bl
 
 `fuzzierMatcher.clear()`
 
-* This method clears the entire cache, including small parts of it that are unreachable via `delete` and `setQuery("")`.
+* This method clears the entire cache.

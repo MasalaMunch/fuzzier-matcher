@@ -1,5 +1,18 @@
 const FuzzierMatcher = (() => {
 
+    const LazyMap = (getValFromKey) => {
+        const This = new Map();
+        This.get = (key) => {
+            let val = Map.prototype.get.call(This, key);
+            if (val === undefined) {
+                val = getValFromKey(key);
+                This.set(key, val);
+            }
+            return val;
+        };
+        return This;
+    };
+
     const MultiSet = () => {
         const This = new Map();
         This.get = (item) => {
@@ -19,33 +32,9 @@ const FuzzierMatcher = (() => {
         return This;
     };
 
-    const LazyMap = (getValFromKey) => {
-        const This = new Map();
-        This.get = (key) => {
-            let val = Map.prototype.get.call(This, key);
-            if (val === undefined) {
-                val = getValFromKey(key);
-                This.set(key, val);
-            }
-            return val;
-        };
-        return This;
-    };
+    const MaxHeap = (() => {
 
-    const CharMap = (() => {
-        const BlankArray = () => [];
-        return (str) => {
-            const This = LazyMap(BlankArray);
-            for (let i=0; i<str.length; i++) {
-                This.get(str.charCodeAt(i)).push(i);
-            }
-            return This;
-        };
-    })();
-
-    const MaxHeap = (compareItems, array) => {
-
-        const fixChildren = (i, item) => {
+        const fixChildren = (compareItems, array, i, item) => {
             while (true) {
                 const iLeftChild = (i<<1) + 1;
                 if (iLeftChild < array.length) {
@@ -79,44 +68,34 @@ const FuzzierMatcher = (() => {
             array[i] = item;
         };
 
-        return {
-            addAsMin: (item) => array.push(item),
-            fix: () => {
-                for (let i=(array.length-2)>>1; i>=0; i--) {
-                    fixChildren(i, array[i]);
-                }
-            },
-            getMax: () => array[0],
-            delMax: () => fixChildren(0, array.pop()),
-            };
+        return (compareItems, array) => {
+            for (let i=(array.length-2)>>1; i>=0; i--) {
+                fixChildren(compareItems, array, i, array[i]);
+            }
+            return {
+                getMax: () => array[0],
+                delMax: () => fixChildren(compareItems, array, 0, array.pop()),
+                };
+        };
 
+    })();
+
+    const CharMap = (() => {
+        const BlankArray = () => [];
+        return (str) => {
+            const This = LazyMap(BlankArray);
+            for (let i=0; i<str.length; i++) {
+                This.get(str.charCodeAt(i)).push(i);
+            }
+            return This;
+        };
+    })();
+
+    const SimilarityScore = (numberA, numberB, minScore, maxScore) => {
+        return Math.max(minScore, maxScore - Math.abs(numberA - numberB));
     };
 
-    const ArrayAllocator = () => {
-        const freeArrays = [];
-        const inUseArrays = [];
-        return {
-            get: (len=0) => {
-                const array = freeArrays.length === 0? [] : freeArrays.pop();
-                array.length = len;
-                array.fill();
-                inUseArrays.push(array);
-                return array;
-            },
-            release: () => {
-                for (let i=inUseArrays.length-1; i>=0; i--) {
-                    freeArrays.push(inUseArrays.pop());
-                }
-            },
-            clear: () => freeArrays.length = 0,
-            };
-    };
-
-    const SimilarityScore = (differenceScore) => {
-        return 1 / (1 + Math.abs(differenceScore));
-    };
-
-    const DumbWordList = (srcStr) => [srcStr];
+    const DumbWordList = (str) => [str];
     const DumbWordStr = (wordList) => wordList.join("");
     const DumbWordSrcIndicesList = (() => {
         const Range = (len) => {
@@ -129,15 +108,15 @@ const FuzzierMatcher = (() => {
         return (srcStr, wordList) => [Range(srcStr.length)];
     })();
 
-    const DefaultWordList = (srcStr) => {
-        const match = srcStr.toLowerCase().match(/[^\s]+/g);
+    const DefaultWordList = (str) => {
+        const match = str.toLowerCase().match(/[^\s]+/g);
         return match === null? [] : match;
     };
     const DefaultWordStr = (wordList) => wordList.join(" ");
     const DefaultWordSrcIndicesList = (srcStr, wordList) => {
-        srcStr = srcStr.toLowerCase();
-        This = new Array(wordList.length);
+        const This = new Array(wordList.length);
         if (wordList.length > 0) {
+            srcStr = srcStr.toLowerCase();
             let iSrc = 0;
             let iDst = 0;
             while (true) {
@@ -160,116 +139,9 @@ const FuzzierMatcher = (() => {
     return (WordList=DefaultWordList, WordStr=DefaultWordStr, 
             WordSrcIndicesList=DefaultWordSrcIndicesList) => {
 
-        const tmpArrays = ArrayAllocator();
-
-        const getWordStrMatchScore = (targetWordStr, 
-                                      getWordMatchedIndicesListInstead) => {
-
-            const targetWordList = targetWordStrWordLists.get(targetWordStr);
-
-            const bigWordList = (
-                queryWordList.length > targetWordList.length? 
-                queryWordList : targetWordList
-                );
-            const smallWordList = (
-                bigWordList === queryWordList? targetWordList : queryWordList
-                );
-
-            const smallHeapList = tmpArrays.get(smallWordList.length);
-            const smallScoresList = tmpArrays.get(smallWordList.length); 
-            const unpairedSmallListIndices = tmpArrays.get(
-                smallWordList.length
-                );
-            for (let i=0; i<smallWordList.length; i++) {
-                unpairedSmallListIndices[i] = i;
-                const scores = tmpArrays.get(bigWordList.length);
-                const heap = MaxHeap(
-                    (iBig, jBig) => scores[iBig] - scores[jBig], tmpArrays.get()
-                    );
-                for (let j=0; j<bigWordList.length; j++) {
-                    scores[j] = (
-                        similarityScores.get(i - j) 
-                        + (
-                            bigWordList === queryWordList? 
-                            queryWordMatchScoreMaps.get(bigWordList[j])
-                                .get(smallWordList[i])
-                            : queryWordMatchScoreMaps.get(smallWordList[i])
-                                .get(bigWordList[j])
-                          )
-                        );
-                    heap.addAsMin(j);
-                }
-                smallScoresList[i] = scores;
-                heap.fix();
-                smallHeapList[i] = heap;
-            }
-            const smallBigIndexList = tmpArrays.get(smallWordList.length);
-            const bigSmallIndexList = tmpArrays.get(bigWordList.length);
-            while (unpairedSmallListIndices.length > 0) {
-                const i = unpairedSmallListIndices.pop();
-                while (true) {
-                    const j = smallHeapList[i].getMax();
-                    const iConflict = bigSmallIndexList[j];
-                    if (iConflict === undefined || smallScoresList[i][j] 
-                    > smallScoresList[iConflict][j]) {
-                        smallBigIndexList[i] = j;
-                        bigSmallIndexList[j] = i;
-                        if (iConflict !== undefined) {
-                            smallHeapList[iConflict].delMax();
-                            unpairedSmallListIndices.push(iConflict);
-                        }
-                        break;
-                    }
-                    smallHeapList[i].delMax();
-                }
-            }
-
-            tmpArrays.release();
-
-            if (getWordMatchedIndicesListInstead) {
-                if (bigWordList === queryWordList) {
-                    const targetWordMatchedIndicesList = (
-                        new Array(smallWordList.length)
-                        );
-                    for (let i=0; i<smallBigIndexList.length; i++) {
-                        targetWordMatchedIndicesList[i] = (
-                            queryWordMatchedTargetIndicesMaps
-                                .get(bigWordList[smallBigIndexList[i]])
-                                    .get(smallWordList[i])
-                            );
-                    }
-                    return targetWordMatchedIndicesList;
-                }
-                const targetWordMatchedIndicesList = (
-                    new Array(bigWordList.length)
-                    );
-                for (let i=0; i<smallBigIndexList.length; i++) {
-                    const j = smallBigIndexList[i];
-                    targetWordMatchedIndicesList[j] = (
-                        queryWordMatchedTargetIndicesMaps.get(smallWordList[i])
-                            .get(bigWordList[j])
-                        );
-                }
-                return targetWordMatchedIndicesList;
-            }
-
-            let matchScore = similarityScores.get(
-                bigWordList.length - smallWordList.length
-                );
-            for (let i=0; i<smallBigIndexList.length; i++) {
-                matchScore += smallScoresList[i][smallBigIndexList[i]];
-            }
-            return matchScore;
-
-        };
-
-        const targetWordStrMatchScores = LazyMap((wordStr) => {
-            return getWordStrMatchScore(wordStr);
-        });
-
-        const targetWordStrWordMatchedIndicesLists = LazyMap((wordStr) => {
-            return getWordStrMatchScore(wordStr, true);
-        });
+        let queryWordList = [];
+        const queryWordMultiSet = MultiSet();
+        let bonusScoreWeight = 1;
 
         const queryWordCharIndicesLists = new Map();
         const queryWordCharLists = LazyMap((word) => {
@@ -284,27 +156,22 @@ const FuzzierMatcher = (() => {
             }
             queryWordCharIndicesLists.set(word, charIndicesList);
             return charList;
-        })
+        });
 
-        const getWordMatchScore = (queryWord, targetWord, 
-                                   getMatchedTargetIndicesInstead) => {
+        const WordMatchScore = (queryWord, targetWord, 
+                                returnMatchedTargetIndicesInstead) => {
 
             const queryCharList = queryWordCharLists.get(queryWord);
             const queryCharIndicesList = (
                 queryWordCharIndicesLists.get(queryWord)
                 );
+            let remainingTargetIndices = targetWord.length;
             const targetCharMap = targetWordCharMaps.get(targetWord);
-
-            if (getMatchedTargetIndicesInstead) {
+            if (returnMatchedTargetIndicesInstead) {
                 var matchedTargetIndices = [];
             } else {
-                var matchScore = (
-                    similarityScores.get(targetWord.length - queryWord.length)
-                    );
+                var matchScore = 0;
             }
-
-            let remainingTargetIndices = targetWord.length;
-
             for (let i=0; i<queryCharList.length; i++) {
                 const targetIndices = targetCharMap.get(queryCharList[i]);
                 if (targetIndices !== undefined) {
@@ -356,15 +223,15 @@ const FuzzierMatcher = (() => {
                                 }
                             }
                         }
-                        if (getMatchedTargetIndicesInstead) {
+                        if (returnMatchedTargetIndicesInstead) {
                             matchedTargetIndices.push(
                                 moreIndices === queryIndices? 
                                 lessIndex : moreIndex
                                 );                              
                         } else {
-                            matchScore += (
-                                similarityScores.get(moreIndex - lessIndex)
-                                );                          
+                            matchScore += SimilarityScore(
+                                lessIndex, moreIndex, 1, queryWord.length + 1
+                                );
                         }
                     }
                     if ((remainingTargetIndices -= targetIndices.length) 
@@ -373,49 +240,32 @@ const FuzzierMatcher = (() => {
                     }
                 }
             }
-            if (getMatchedTargetIndicesInstead) {
+            if (returnMatchedTargetIndicesInstead) {
                 return matchedTargetIndices;
             }
-            return matchScore;
+            return (
+                matchScore 
+                + bonusScoreWeight * SimilarityScore(
+                    queryWord.length, targetWord.length, 0, queryWord.length
+                    )
+                );
 
         };
         const queryWordMatchScoreMaps = LazyMap((queryWord) => {
             return LazyMap((targetWord) => {
-                return getWordMatchScore(queryWord, targetWord);
+                return WordMatchScore(queryWord, targetWord);
             });
         });
         const queryWordMatchedTargetIndicesMaps = LazyMap((queryWord) => {
             return LazyMap((targetWord) => {
-                return getWordMatchScore(queryWord, targetWord, true);
+                return WordMatchScore(queryWord, targetWord, true);
             });
         });
 
-        const targetStrMatchedIndices = LazyMap((str) => {
-            const matchedIndices = [];
-            const wordSrcIndicesList = targetStrWordSrcIndicesLists.get(str);
-            const wordMatchedIndicesList = targetWordStrWordMatchedIndicesLists
-                .get(targetStrWordStrs.get(str));
-            for (let i=0; i<wordMatchedIndicesList.length; i++) {
-                const matchedWordIndices = wordMatchedIndicesList[i];
-                if (matchedWordIndices !== undefined) {
-                    for (let j=0; j<matchedWordIndices.length; j++) {
-                        matchedIndices.push(
-                            wordSrcIndicesList[i][matchedWordIndices[j]]
-                            );
-                    }
-                }
-            }
-            return matchedIndices;
-        });
+        const targetWordMultiSet = MultiSet();
+        const targetWordCharMaps = LazyMap(CharMap);
 
         const targetWordStrMultiSet = MultiSet();
-        const targetWordMultiSet = MultiSet();
-
-        let queryWordList = [];
-        const queryWordMultiSet = MultiSet();
-
-        const targetWordCharMaps = LazyMap(CharMap);
-        const similarityScores = LazyMap(SimilarityScore);
         const targetWordStrWordLists = new Map();
         const targetStrWordStrs = LazyMap((str) => {
             const wordList = WordList(str);
@@ -427,10 +277,128 @@ const FuzzierMatcher = (() => {
             targetWordStrMultiSet.push(wordStr);
             return wordStr;
         });
-        const targetStrWordSrcIndicesLists = LazyMap((str) => {
-            return WordSrcIndicesList(
-                str, targetWordStrWordLists.get(targetStrWordStrs.get(str))
+
+        const WordStrMatchScore = (targetWordStr, 
+                                   returnWordMatchedIndicesListInstead) => {
+
+            const targetWordList = targetWordStrWordLists.get(targetWordStr);
+            const bigWordList = (
+                queryWordList.length > targetWordList.length? 
+                queryWordList : targetWordList
                 );
+            const smallWordList = (
+                bigWordList === queryWordList? targetWordList : queryWordList
+                );
+            const unpairedSmallListIndices = new Array(smallWordList.length);
+            const smallBigListIndexHeapList = new Array(smallWordList.length);
+            const smallScoresList = new Array(smallWordList.length);
+            for (let i=0; i<smallWordList.length; i++) {
+                unpairedSmallListIndices[i] = i;
+                const bigListIndices = new Array(bigWordList.length);
+                const scores = new Array(bigWordList.length);
+                for (let j=0; j<bigWordList.length; j++) {
+                    bigListIndices[j] = j;
+                    scores[j] = (
+                        (bigWordList === queryWordList? 
+                         queryWordMatchScoreMaps.get(bigWordList[j])
+                             .get(smallWordList[i])
+                         : queryWordMatchScoreMaps.get(smallWordList[i])
+                             .get(bigWordList[j]))
+                        + bonusScoreWeight * SimilarityScore(
+                            i, j, 0, queryWordList.length
+                            )
+                        );
+                }
+                smallBigListIndexHeapList[i] = MaxHeap(
+                    (j, k) => scores[j] - scores[k], bigListIndices
+                    );
+                smallScoresList[i] = scores;
+            }
+            const smallBigIndexList = new Array(smallWordList.length);
+            const bigSmallIndexList = new Array(bigWordList.length);
+            while (unpairedSmallListIndices.length > 0) {
+                const i = unpairedSmallListIndices.pop();
+                const bigListIndexHeap = smallBigListIndexHeapList[i];
+                while (true) {
+                    const j = bigListIndexHeap.getMax();
+                    const iConflict = bigSmallIndexList[j];
+                    if (iConflict === undefined || smallScoresList[i][j] 
+                    > smallScoresList[iConflict][j]) {
+                        smallBigIndexList[i] = j;
+                        bigSmallIndexList[j] = i;
+                        if (iConflict !== undefined) {
+                            smallBigListIndexHeapList[iConflict].delMax();
+                            unpairedSmallListIndices.push(iConflict);
+                        }
+                        break;
+                    }
+                    bigListIndexHeap.delMax();
+                }
+            }
+
+            if (returnWordMatchedIndicesListInstead) {
+                const targetWordMatchedIndicesList = (
+                    new Array(targetWordList.length)
+                    );
+                if (bigWordList === queryWordList) {
+                    for (let i=0; i<smallBigIndexList.length; i++) {
+                        targetWordMatchedIndicesList[i] = (
+                            queryWordMatchedTargetIndicesMaps
+                                .get(bigWordList[smallBigIndexList[i]])
+                                    .get(smallWordList[i])
+                            );
+                    }
+                    return targetWordMatchedIndicesList;
+                } else {
+                    for (let i=0; i<smallBigIndexList.length; i++) {
+                        const j = smallBigIndexList[i];
+                        targetWordMatchedIndicesList[j] = (
+                            queryWordMatchedTargetIndicesMaps
+                                .get(smallWordList[i]).get(bigWordList[j])
+                            );
+                    }  
+                }
+                return targetWordMatchedIndicesList;
+            }
+            let matchScore = 0;
+            for (let i=0; i<smallBigIndexList.length; i++) {
+                matchScore += smallScoresList[i][smallBigIndexList[i]];
+            }
+            return (
+                matchScore 
+                + bonusScoreWeight * SimilarityScore(
+                    queryWordList.length, targetWordList.length, 
+                    0, queryWordList.length
+                    )
+                );
+
+        };
+        const targetWordStrMatchScores = LazyMap((wordStr) => {
+            return WordStrMatchScore(wordStr);
+        });
+        const targetWordStrWordMatchedIndicesLists = LazyMap((wordStr) => {
+            return WordStrMatchScore(wordStr, true);
+        });
+
+        const targetStrMatchedIndices = LazyMap((str) => {
+            const matchedIndices = [];
+            const wordStr = targetStrWordStrs.get(str);
+            const wordSrcIndicesList = WordSrcIndicesList(
+                str, targetWordStrWordLists.get(wordStr)
+                );
+            const wordMatchedIndicesList = targetWordStrWordMatchedIndicesLists
+                .get(wordStr);
+            for (let i=0; i<wordMatchedIndicesList.length; i++) {
+                const matchedWordIndices = wordMatchedIndicesList[i];
+                if (matchedWordIndices !== undefined) {
+                    for (let j=0; j<matchedWordIndices.length; j++) {
+                        matchedIndices.push(
+                            wordSrcIndicesList[i][matchedWordIndices[j]]
+                            );
+                    }
+                }
+            }
+            return matchedIndices;
         });
 
         return {
@@ -452,17 +420,25 @@ const FuzzierMatcher = (() => {
                     }
                 }
                 queryWordList = newQueryWordList;
+                let queryCharCount = 0;
+                for (let i=0; i<queryWordList.length; i++) {
+                    queryCharCount += queryWordList[i].length;
+                }
+                bonusScoreWeight = (
+                    1 / (1 + queryWordList.length + queryWordList.length**2 
+                    + queryCharCount)
+                    );
             },
             getScore: (targetStr) => {
-                return targetWordStrMatchScores
-                    .get(targetStrWordStrs.get(targetStr));
+                return targetWordStrMatchScores.get(
+                    targetStrWordStrs.get(targetStr)
+                    );
             },
             getIndices: (targetStr) => {
                 return targetStrMatchedIndices.get(targetStr);
             },
             delete: (targetStr) => {
                 targetStrMatchedIndices.delete(targetStr);
-                targetStrWordSrcIndicesLists.delete(targetStr);
                 if (targetStrWordStrs.has(targetStr)) {
                     const wordStr = targetStrWordStrs.get(targetStr);
                     targetStrWordStrs.delete(targetStr);
@@ -489,19 +465,16 @@ const FuzzierMatcher = (() => {
                 }
             },
             clear: () => {
-                tmpArrays.clear();
+                queryWordMatchScoreMaps.clear();
+                queryWordMatchedTargetIndicesMaps.clear();
                 targetWordMultiSet.clear();
+                targetWordCharMaps.clear();
                 targetWordStrMultiSet.clear();
                 targetWordStrWordLists.clear();
                 targetStrWordStrs.clear();
-                targetStrWordSrcIndicesLists.clear();
-                targetWordCharMaps.clear();
-                similarityScores.clear();
-                targetStrMatchedIndices.clear();
                 targetWordStrMatchScores.clear();
                 targetWordStrWordMatchedIndicesLists.clear();
-                queryWordMatchScoreMaps.clear();
-                queryWordMatchedTargetIndicesMaps.clear();
+                targetStrMatchedIndices.clear();
             },
             };
 
