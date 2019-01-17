@@ -1,6 +1,6 @@
 <div id="header">Waiting for string database to load...</div>
 <form><input id="searchText" type="text"></form>
-<div id="output"></div>
+<div id="output">Best match score: 0</div>
 <style>
 	.MatchedText {
 		background-color: gold;
@@ -12,7 +12,6 @@
 	const wordsPerString = 5;
 	let stringsToSearch;
 	const header = document.getElementById("header")
-	const output = document.getElementById("output");
 	let url = "http://localhost:5000/getSentences?"
 	url += "&count=" + stringCount;
 	url += "&wordsPerSentence=" + wordsPerString;
@@ -28,37 +27,17 @@
 		err => header.innerText = "Run ../testGenerator/server.py",
 		);
 	const fuzzierMatcher = FuzzierMatcher();
+	const output = document.getElementById("output");
 	const searchText = document.getElementById("searchText");
 	searchText.addEventListener("input", () => {
-		if (stringsToSearch) {
-			fuzzierMatcher.setQuery(searchText.value);
-			let bestMatchScore = 0;
-			let bestMatchedString;
-			for (let i=0; i<stringsToSearch.length; i++) {
-				const string = stringsToSearch[i];
-				const score = fuzzierMatcher.getScore(string);
-				if (score > bestMatchScore) {
-					bestMatchScore = score;
-					bestMatchedString = string;
-				}
+		fuzzierMatcher.setQuery(searchText.value);
+		let bestMatchScore = 0;
+		for (let i=0; i<stringsToSearch.length; i++) {
+			const score = fuzzierMatcher.getScore(stringsToSearch[i]);
+			if (score > bestMatchScore) {
+				bestMatchScore = score;
 			}
-			output.innerText = "";
-			if (bestMatchedString !== undefined) {
-				const matchedIndicesSet = new Set(
-					fuzzierMatcher.getIndices(bestMatchedString)
-					);
-				for (let i=0; i<bestMatchedString.length; i++) {
-					const charStr = bestMatchedString[i];
-					if (matchedIndicesSet.has(i)) {
-						const matchedChar = document.createElement("span");
-						matchedChar.className = "MatchedText";
-						matchedChar.innerText = charStr;
-						output.appendChild(matchedChar);
-					} else {
-						output.appendChild(document.createTextNode(charStr));
-					}
-				}
-			}			
 		}
+		output.innerText = "Best match score: " + bestMatchScore;
 	});
 </script>
