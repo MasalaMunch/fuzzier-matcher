@@ -55,7 +55,7 @@ A string matching algorithm inspired by Forrest Smith's [fuzzy match](https://bl
 
 `fuzzierMatcher.getAsyncWorker(iterable, processItem, onFinish, [targetFps]) -> asyncWorker`
 
-* Useful for searching large databases. For example, calling `getAsyncWorker(stringArray, fuzzierMatcher.getScore, showTopResults).start()` will asyncronously cache the score of every item in `stringArray`, then call `showTopResults`. The default value for `targetFps` is 144.
+* Useful for searching large databases. For example, `getAsyncWorker(stringArray, fuzzierMatcher.getScore, showTopResults).start()` will asyncronously cache the score of every item in `stringArray`, then call `showTopResults`. The default value for `targetFps` is 144.
 * The `asyncWorker` object exposes the self-explanatory `start()` and `stop()` methods along with the `finish()` method, which causes it to syncronously process its remaining items.
 
 `fuzzierMatcher.delete(targetString)`
