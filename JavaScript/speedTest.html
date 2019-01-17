@@ -22,7 +22,11 @@
             header.innerText = "Search " + charCount + " characters:";
             searchText.focus();
         }), 
-        err => header.innerText = "Run ../testGenerator/server.py",
+        () => {
+            header.innerText = (
+                "Request failed. Try running ../testGenerator/server.py"
+                );
+        },
         );
     const output = document.getElementById("output");
     const searchText = document.getElementById("searchText");
