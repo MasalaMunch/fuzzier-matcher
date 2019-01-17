@@ -3,10 +3,11 @@
 <div id="output">Best match score: 0</div>
 <script src="FuzzierMatcher.js"></script>
 <script>
-    const stringCount = 5000;
+    const async = true;
+    const stringCount = 10000;
     const wordsPerString = 5;
     const fuzzierMatcher = FuzzierMatcher();
-    let stringsToSearch;
+    let stringsToSearch = [];
     const header = document.getElementById("header")
     let url = "http://localhost:5000/getSentences?"
     url += "&count=" + stringCount;
@@ -19,13 +20,13 @@
                 charCount += stringsToSearch[i].length;
             }
             header.innerText = "Search " + charCount + " characters:";
+            searchText.focus();
         }), 
         err => header.innerText = "Run ../testGenerator/server.py",
         );
     const output = document.getElementById("output");
     const searchText = document.getElementById("searchText");
-    searchText.addEventListener("input", () => {
-        fuzzierMatcher.setQuery(searchText.value);
+    const showBestMatchScore = () => {
         let bestMatchScore = 0;
         for (let i=0; i<stringsToSearch.length; i++) {
             const score = fuzzierMatcher.getScore(stringsToSearch[i]);
@@ -34,5 +35,21 @@
             }
         }
         output.innerText = "Best match score: " + bestMatchScore;
+    };
+    let asyncWorker;
+    searchText.addEventListener("input", () => {
+        fuzzierMatcher.setQuery(searchText.value);
+        if (async) {
+            if (asyncWorker) {
+                asyncWorker.stop();
+            }
+            asyncWorker = fuzzierMatcher.getAsyncWorker(
+                stringsToSearch, fuzzierMatcher.getScore, showBestMatchScore
+                );
+            output.innerText = "Searching...";
+            asyncWorker.start();
+        } else {
+            showBestMatchScore();
+        }
     });
 </script>

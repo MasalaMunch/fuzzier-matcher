@@ -136,6 +136,58 @@ const FuzzierMatcher = (() => {
         return This;
     };
 
+    const AsyncWorker = (iterable, processItem, onFinish, targetFps=144) => {
+    //SRC^ https://github.com/forrestthewoods/lib_fts/blob/master/code/fts_fuzzy_match.js
+
+        var max_ms_per_frame = 1000/targetFps;
+        const iterator = iterable[Symbol.iterator]();
+        let currentIteration = iterator.next();
+        var resumeTimeout = null;
+
+        // Perform matches for at most max_ms
+        function step() {
+            clearTimeout(resumeTimeout);
+            resumeTimeout = null;
+
+            var stopTime = performance.now() + max_ms_per_frame;
+
+            while (!currentIteration.done) {
+                if (performance.now() > stopTime) {
+                    resumeTimeout = setTimeout(step, 1);
+                    return;
+                }
+
+                processItem(currentIteration.value);
+
+                currentIteration = iterator.next();
+            }
+
+            onFinish();
+            return null;
+        };
+
+        return {
+            start: step,
+            //^ Must be called to start matching.
+            //  I tried to make asyncMatcher auto-start via "var 
+            //  resumeTimeout = step();" However setTimout behaving in 
+            //  an unexpected fashion as onComplete insisted on 
+            //  triggering twice.
+            finish: function() {
+            //^ Process full list. Blocks script execution until 
+            //  complete
+                max_ms_per_frame = Infinity;
+                step();
+            },
+            stop: function() {
+            //^ Abort current process
+                if (resumeTimeout !== null)
+                    clearTimeout(resumeTimeout);
+            },
+            };
+
+    };
+
     return (WordList=DefaultWordList, WordStr=DefaultWordStr, 
             WordSrcIndicesList=DefaultWordSrcIndicesList) => {
 
@@ -402,7 +454,7 @@ const FuzzierMatcher = (() => {
         });
 
         return {
-            setQuery: (str) => {
+            setQuery: (str, ) => {
                 targetStrMatchedIndices.clear();
                 targetWordStrMatchScores.clear();
                 targetWordStrWordMatchedIndicesLists.clear();
@@ -437,6 +489,7 @@ const FuzzierMatcher = (() => {
             getIndices: (targetStr) => {
                 return targetStrMatchedIndices.get(targetStr);
             },
+            getAsyncWorker: AsyncWorker,
             delete: (targetStr) => {
                 targetStrMatchedIndices.delete(targetStr);
                 if (targetStrWordStrs.has(targetStr)) {
@@ -477,6 +530,7 @@ const FuzzierMatcher = (() => {
                 targetStrMatchedIndices.clear();
             },
             };
+            return This;
 
     };
     

@@ -9,7 +9,7 @@ A string matching algorithm inspired by Forrest Smith's [fuzzy match](https://bl
 
 ## How fast is it?
 
-* The JavaScript implementation can query databases containing up to 250,000 characters in real time on [my laptop](https://browser.geekbench.com/macs/437).
+* The JavaScript implementation can query databases containing up to 500,000 characters in real time on [my laptop](https://browser.geekbench.com/macs/437).
 
 ## Demo
 
@@ -52,6 +52,11 @@ A string matching algorithm inspired by Forrest Smith's [fuzzy match](https://bl
 
 * In the demo, this is called on the 10 strongest-matching target strings in order to highlight which of their letters match the query string.
 * Indices are cached in a manner similar to `getScore`.
+
+`fuzzierMatcher.getAsyncWorker(iterable, processItem, onFinish, [targetFps]) -> asyncWorker`
+
+* Useful for searching large databases. For example, calling `getAsyncWorker(stringArray, fuzzierMatcher.getScore, showTopResults).start()` will asyncronously cache the score of every item in `stringArray`, then call `showTopResults`. The default value for `targetFps` is 144.
+* The `asyncWorker` object exposes the self-explanatory `start()` and `stop()` methods along with the `finish()` method, which causes it to syncronously process its remaining items.
 
 `fuzzierMatcher.delete(targetString)`
 
