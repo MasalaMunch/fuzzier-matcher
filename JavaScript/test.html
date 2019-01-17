@@ -1,15 +1,11 @@
 <div id="header">Waiting for string database to load...</div>
 <form><input id="searchText" type="text"></form>
 <div id="output">Best match score: 0</div>
-<style>
-	.MatchedText {
-		background-color: gold;
-	}
-</style>
 <script src="FuzzierMatcher.js"></script>
 <script>
 	const stringCount = 5000;
 	const wordsPerString = 5;
+	const fuzzierMatcher = FuzzierMatcher();
 	let stringsToSearch;
 	const header = document.getElementById("header")
 	let url = "http://localhost:5000/getSentences?"
@@ -26,7 +22,6 @@
 		}), 
 		err => header.innerText = "Run ../testGenerator/server.py",
 		);
-	const fuzzierMatcher = FuzzierMatcher();
 	const output = document.getElementById("output");
 	const searchText = document.getElementById("searchText");
 	searchText.addEventListener("input", () => {
