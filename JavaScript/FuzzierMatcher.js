@@ -136,11 +136,10 @@ const FuzzierMatcher = (() => {
         return This;
     };
 
-    const AsyncWorker = (iterable, processItem, onFinish, targetFps=144) => {
+    const AsyncWorker = (iterator, processItem, onFinish, targetFps=144) => {
     //SRC^ https://github.com/forrestthewoods/lib_fts/blob/master/code/fts_fuzzy_match.js
 
         var max_ms_per_frame = 1000/targetFps;
-        const iterator = iterable[Symbol.iterator]();
         let currentIteration = iterator.next();
         var resumeTimeout = null;
 
