@@ -23,7 +23,7 @@ A string matching algorithm inspired by Forrest Smith's [fuzzy match](https://bl
 >>> fuzzierMatcher = FuzzierMatcher()
 >>> fuzzierMatcher.setQuery("search query")
 >>> fuzzierMatcher.getScore("Target of Search")
-9.666666666666666
+51.66666666666667
 >>> fuzzierMatcher.getIndices("Target of Search")
 [4, 2, 10, 11, 12, 13, 14, 15]
 >>> fuzzierMatcher.delete("Target of Search")
