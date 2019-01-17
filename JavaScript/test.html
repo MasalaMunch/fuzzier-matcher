@@ -3,36 +3,36 @@
 <div id="output">Best match score: 0</div>
 <script src="FuzzierMatcher.js"></script>
 <script>
-	const stringCount = 5000;
-	const wordsPerString = 5;
-	const fuzzierMatcher = FuzzierMatcher();
-	let stringsToSearch;
-	const header = document.getElementById("header")
-	let url = "http://localhost:5000/getSentences?"
-	url += "&count=" + stringCount;
-	url += "&wordsPerSentence=" + wordsPerString;
-	fetch(url, {cache: "no-cache"}).then(
-		response => response.json().then(sentences => {
-			stringsToSearch = sentences;
-			let charCount = 0;
-			for (let i=0; i<stringsToSearch.length; i++) {
-				charCount += stringsToSearch[i].length;
-			}
-			header.innerText = "Search " + charCount + " characters:";
-		}), 
-		err => header.innerText = "Run ../testGenerator/server.py",
-		);
-	const output = document.getElementById("output");
-	const searchText = document.getElementById("searchText");
-	searchText.addEventListener("input", () => {
-		fuzzierMatcher.setQuery(searchText.value);
-		let bestMatchScore = 0;
-		for (let i=0; i<stringsToSearch.length; i++) {
-			const score = fuzzierMatcher.getScore(stringsToSearch[i]);
-			if (score > bestMatchScore) {
-				bestMatchScore = score;
-			}
-		}
-		output.innerText = "Best match score: " + bestMatchScore;
-	});
+    const stringCount = 5000;
+    const wordsPerString = 5;
+    const fuzzierMatcher = FuzzierMatcher();
+    let stringsToSearch;
+    const header = document.getElementById("header")
+    let url = "http://localhost:5000/getSentences?"
+    url += "&count=" + stringCount;
+    url += "&wordsPerSentence=" + wordsPerString;
+    fetch(url, {cache: "no-cache"}).then(
+        response => response.json().then(sentences => {
+            stringsToSearch = sentences;
+            let charCount = 0;
+            for (let i=0; i<stringsToSearch.length; i++) {
+                charCount += stringsToSearch[i].length;
+            }
+            header.innerText = "Search " + charCount + " characters:";
+        }), 
+        err => header.innerText = "Run ../testGenerator/server.py",
+        );
+    const output = document.getElementById("output");
+    const searchText = document.getElementById("searchText");
+    searchText.addEventListener("input", () => {
+        fuzzierMatcher.setQuery(searchText.value);
+        let bestMatchScore = 0;
+        for (let i=0; i<stringsToSearch.length; i++) {
+            const score = fuzzierMatcher.getScore(stringsToSearch[i]);
+            if (score > bestMatchScore) {
+                bestMatchScore = score;
+            }
+        }
+        output.innerText = "Best match score: " + bestMatchScore;
+    });
 </script>
