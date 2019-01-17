@@ -1,0 +1,64 @@
+<div id="header">Waiting for string database to load...</div>
+<form><input id="searchText" type="text"></form>
+<div id="output"></div>
+<style>
+	.MatchedText {
+		background-color: gold;
+	}
+</style>
+<script src="FuzzierMatcher.js"></script>
+<script>
+	const stringCount = 5000;
+	const wordsPerString = 5;
+	let stringsToSearch;
+	const header = document.getElementById("header")
+	const output = document.getElementById("output");
+	let url = "http://localhost:5000/getSentences?"
+	url += "&count=" + stringCount;
+	url += "&wordsPerSentence=" + wordsPerString;
+	fetch(url, {cache: "no-cache"}).then(
+		response => response.json().then(sentences => {
+			stringsToSearch = sentences;
+			let charCount = 0;
+			for (let i=0; i<stringsToSearch.length; i++) {
+				charCount += stringsToSearch[i].length;
+			}
+			header.innerText = "Search " + charCount + " characters:";
+		}), 
+		err => header.innerText = "Run ../testGenerator/server.py",
+		);
+	const fuzzierMatcher = FuzzierMatcher();
+	const searchText = document.getElementById("searchText");
+	searchText.addEventListener("input", () => {
+		if (stringsToSearch) {
+			fuzzierMatcher.setQuery(searchText.value);
+			let bestMatchScore = 0;
+			let bestMatchedString;
+			for (let i=0; i<stringsToSearch.length; i++) {
+				const string = stringsToSearch[i];
+				const score = fuzzierMatcher.getScore(string);
+				if (score > bestMatchScore) {
+					bestMatchScore = score;
+					bestMatchedString = string;
+				}
+			}
+			output.innerText = "";
+			if (bestMatchedString !== undefined) {
+				const matchedIndicesSet = new Set(
+					fuzzierMatcher.getIndices(bestMatchedString)
+					);
+				for (let i=0; i<bestMatchedString.length; i++) {
+					const charStr = bestMatchedString[i];
+					if (matchedIndicesSet.has(i)) {
+						const matchedChar = document.createElement("span");
+						matchedChar.className = "MatchedText";
+						matchedChar.innerText = charStr;
+						output.appendChild(matchedChar);
+					} else {
+						output.appendChild(document.createTextNode(charStr));
+					}
+				}
+			}			
+		}
+	});
+</script>
