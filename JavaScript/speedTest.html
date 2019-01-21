@@ -8,8 +8,8 @@
     const wordsPerString = 5;
     const fuzzierMatcher = FuzzierMatcher();
     let stringsToSearch = [];
-    const header = document.getElementById("header")
-    let url = "http://localhost:5000/getSentences?"
+    const header = document.getElementById("header");
+    let url = "http://localhost:5000/getSentences?";
     url += "&count=" + stringCount;
     url += "&wordsPerSentence=" + wordsPerString;
     fetch(url, {cache: "no-cache"}).then(

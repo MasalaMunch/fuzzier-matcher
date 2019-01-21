@@ -91,10 +91,6 @@ const FuzzierMatcher = (() => {
         };
     })();
 
-    const SimilarityScore = (numberA, numberB, minScore, maxScore) => {
-        return Math.max(minScore, maxScore - Math.abs(numberA - numberB));
-    };
-
     const DumbWordList = (str) => [str];
     const DumbWordStr = (wordList) => wordList.join("");
     const DumbWordSrcIndicesList = (() => {
@@ -187,6 +183,10 @@ const FuzzierMatcher = (() => {
 
     };
 
+    const SimilarityScore = (numberA, numberB, minScore, maxScore) => {
+        return Math.max(minScore, maxScore - Math.abs(numberA - numberB));
+    };
+
     return (WordList=DefaultWordList, WordStr=DefaultWordStr, 
             WordSrcIndicesList=DefaultWordSrcIndicesList) => {
 
@@ -194,6 +194,7 @@ const FuzzierMatcher = (() => {
         const queryWordMultiSet = MultiSet();
         let bonusScoreWeight = 1;
 
+        const queryWordScoreWeights = LazyMap((word) => 1/(1+word.length));
         const queryWordCharIndicesLists = new Map();
         const queryWordCharLists = LazyMap((word) => {
             const charMap = CharMap(word);
@@ -281,7 +282,7 @@ const FuzzierMatcher = (() => {
                                 );                              
                         } else {
                             matchScore += SimilarityScore(
-                                lessIndex, moreIndex, 1, queryWord.length + 1
+                                lessIndex, moreIndex, 1, queryWord.length+1
                                 );
                         }
                     }
@@ -294,12 +295,7 @@ const FuzzierMatcher = (() => {
             if (returnMatchedTargetIndicesInstead) {
                 return matchedTargetIndices;
             }
-            return (
-                matchScore 
-                + bonusScoreWeight * SimilarityScore(
-                    queryWord.length, targetWord.length, 0, queryWord.length
-                    )
-                );
+            return queryWordScoreWeights.get(queryWord) * matchScore;
 
         };
         const queryWordMatchScoreMaps = LazyMap((queryWord) => {
@@ -415,13 +411,7 @@ const FuzzierMatcher = (() => {
             for (let i=0; i<smallBigIndexList.length; i++) {
                 matchScore += smallScoresList[i][smallBigIndexList[i]];
             }
-            return (
-                matchScore 
-                + bonusScoreWeight * SimilarityScore(
-                    queryWordList.length, targetWordList.length, 
-                    0, queryWordList.length
-                    )
-                );
+            return matchScore;
 
         };
         const targetWordStrMatchScores = LazyMap((wordStr) => {
@@ -453,7 +443,7 @@ const FuzzierMatcher = (() => {
         });
 
         return {
-            setQuery: (str, ) => {
+            setQuery: (str) => {
                 targetStrMatchedIndices.clear();
                 targetWordStrMatchScores.clear();
                 targetWordStrWordMatchedIndicesLists.clear();
@@ -464,6 +454,7 @@ const FuzzierMatcher = (() => {
                 for (let i=0; i<queryWordList.length; i++) {
                     const word = queryWordList[i];
                     if (queryWordMultiSet.pop(word) === 0) {
+                        queryWordScoreWeights.delete(word);
                         queryWordCharLists.delete(word);
                         queryWordCharIndicesLists.delete(word);
                         queryWordMatchScoreMaps.delete(word);
@@ -471,14 +462,14 @@ const FuzzierMatcher = (() => {
                     }
                 }
                 queryWordList = newQueryWordList;
-                let queryCharCount = 0;
+                let maxWordLen = 0;
                 for (let i=0; i<queryWordList.length; i++) {
-                    queryCharCount += queryWordList[i].length;
+                    const len = queryWordList[i].length;
+                    if (len > maxWordLen) {
+                        maxWordLen = len;
+                    }
                 }
-                bonusScoreWeight = (
-                    1 / (1 + queryWordList.length + queryWordList.length**2 
-                    + queryCharCount)
-                    );
+                bonusScoreWeight = 1/(1+queryWordList.length**2*(1+maxWordLen));
             },
             getScore: (targetStr) => {
                 return targetWordStrMatchScores.get(
@@ -519,6 +510,7 @@ const FuzzierMatcher = (() => {
             clear: () => {
                 queryWordMatchScoreMaps.clear();
                 queryWordMatchedTargetIndicesMaps.clear();
+                queryWordScoreWeights.clear();
                 targetWordMultiSet.clear();
                 targetWordCharMaps.clear();
                 targetWordStrMultiSet.clear();
