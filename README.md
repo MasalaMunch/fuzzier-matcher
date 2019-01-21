@@ -13,9 +13,7 @@ A string matching algorithm inspired by Forrest Smith's [fuzzy match](https://bl
 
 ## Demo
 
-1. Go to [queueshare.com/FuzzierMatcherDemo](https://queueshare.com/FuzzierMatcherDemo).
-2. Click the search icon.
-3. Type.
+* [queueshare.com/FuzzierMatcherDemo](https://queueshare.com/FuzzierMatcherDemo)
 
 ## Basic Usage
 
