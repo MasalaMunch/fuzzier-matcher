@@ -267,17 +267,15 @@ const FuzzierMatcher = (() => {
                         }
                         if (returnMatchedTargetIndicesInstead) {
                             if (biggerCharMap === queryCharMap) {
-                                if (moreIndices === sIndices) {
-                                    matchedTargetIndices.push(moreIndex);
-                                } else {
-                                    matchedTargetIndices.push(lessIndex);
-                                }
+                                matchedTargetIndices.push(
+                                    moreIndices === sIndices? 
+                                    moreIndex : lessIndex
+                                    );
                             } else {
-                                if (moreIndices === sIndices) {
-                                    matchedTargetIndices.push(lessIndex);
-                                } else {
-                                    matchedTargetIndices.push(moreIndex);
-                                }
+                                matchedTargetIndices.push(
+                                    moreIndices === sIndices? 
+                                    lessIndex : moreIndex
+                                    );
                             }
                         } else {
                             matchScore += SimilarityScore(
