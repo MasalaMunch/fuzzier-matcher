@@ -1,18 +1,5 @@
 const FuzzierMatcher = (() => {
 
-    const LazyMap = (ValFromKey) => {
-        const This = new Map();
-        This.get = (key) => {
-            let val = Map.prototype.get.call(This, key);
-            if (val === undefined) {
-                val = ValFromKey(key);
-                This.set(key, val);
-            }
-            return val;
-        };
-        return This;
-    };
-
     const MultiSet = () => {
         const This = new Map();
         This.get = (item) => {
@@ -32,9 +19,21 @@ const FuzzierMatcher = (() => {
         return This;
     };
 
-    const MaxHeap = (() => {
+    const LazyMap = (ValFromKey) => {
+        const This = new Map();
+        This.get = (key) => {
+            let val = Map.prototype.get.call(This, key);
+            if (val === undefined) {
+                val = ValFromKey(key);
+                This.set(key, val);
+            }
+            return val;
+        };
+        return This;
+    };
 
-        const fixChildren = (compareItems, array, i, item) => {
+    const MaxHeap = (compareItems, array) => {
+        const fixChildren = (i, item) => {
             while (true) {
                 const iLeftChild = (i<<1) + 1;
                 if (iLeftChild < array.length) {
@@ -67,29 +66,28 @@ const FuzzierMatcher = (() => {
             }
             array[i] = item;
         };
+        for (let i=(array.length-2)>>1; i>=0; i--) {
+            fixChildren(i, array[i]);
+        }
+        return {
+            Max: () => array[0],
+            delMax: () => fixChildren(0, array.pop()),
+            };
+    };
 
-        return (compareItems, array) => {
-            for (let i=(array.length-2)>>1; i>=0; i--) {
-                fixChildren(compareItems, array, i, array[i]);
+    const CharMap = (str) => {
+        const This = new Map();
+        for (let i=0; i<str.length; i++) {
+            const char = str.charCodeAt(i);
+            const indices = This.get(char);
+            if (indices === undefined) {
+                This.set(char, [i]);
+            } else {
+                indices.push(i);
             }
-            return {
-                Max: () => array[0],
-                delMax: () => fixChildren(compareItems, array, 0, array.pop()),
-                };
-        };
-
-    })();
-
-    const CharMap = (() => {
-        const BlankArray = () => [];
-        return (str) => {
-            const This = LazyMap(BlankArray);
-            for (let i=0; i<str.length; i++) {
-                This.get(str.charCodeAt(i)).push(i);
-            }
-            return This;
-        };
-    })();
+        }
+        return This;
+    };
 
     const DumbWordList = (str) => [str];
     const DumbWordStr = (wordList) => wordList.join("");
@@ -187,54 +185,46 @@ const FuzzierMatcher = (() => {
         return Math.max(minScore, maxScore - Math.abs(numberA - numberB));
     };
 
+    const WordScoreWeight = (word) => 1 / (1 + word.length);
+
     return (WordList=DefaultWordList, WordStr=DefaultWordStr, 
             WordSrcIndicesList=DefaultWordSrcIndicesList) => {
 
         let queryWordList = [];
         const queryWordMultiSet = MultiSet();
+        const queryWordScoreWeights = LazyMap(WordScoreWeight);
+        const queryWordCharMaps = LazyMap(CharMap);
         let bonusScoreWeight = 1;
 
-        const queryWordScoreWeights = LazyMap((word) => 1/(1+word.length));
-        const queryWordCharIndicesLists = new Map();
-        const queryWordCharLists = LazyMap((word) => {
-            const charMap = CharMap(word);
-            const charList = new Array(charMap.size);
-            const charIndicesList = new Array(charMap.size);
-            let i = 0;
-            for (const char of charMap.keys()) {
-                charList[i] = char;
-                charIndicesList[i] = charMap.get(char);
-                ++i;
-            }
-            queryWordCharIndicesLists.set(word, charIndicesList);
-            return charList;
-        });
 
         const WordMatchScore = (queryWord, targetWord, 
                                 returnMatchedTargetIndicesInstead) => {
 
-            const queryCharList = queryWordCharLists.get(queryWord);
-            const queryCharIndicesList = (
-                queryWordCharIndicesLists.get(queryWord)
-                );
-            let remainingTargetIndices = targetWord.length;
-            const targetCharMap = targetWordCharMaps.get(targetWord);
             if (returnMatchedTargetIndicesInstead) {
                 var matchedTargetIndices = [];
             } else {
                 var matchScore = 0;
             }
-            for (let i=0; i<queryCharList.length; i++) {
-                const targetIndices = targetCharMap.get(queryCharList[i]);
-                if (targetIndices !== undefined) {
-                    const queryIndices = queryCharIndicesList[i];
+            const queryCharMap = queryWordCharMaps.get(queryWord);
+            const targetCharMap = targetWordCharMaps.get(targetWord);
+            const biggerCharMap = (
+                queryCharMap.size > targetCharMap.size? 
+                queryCharMap : targetCharMap
+                );
+            const smallerCharMap = (
+                biggerCharMap === queryCharMap? targetCharMap : queryCharMap
+                );
+            for (const sChar of smallerCharMap.keys()) {
+                const bIndices = biggerCharMap.get(sChar);
+                if (bIndices !== undefined) {
+                    const sIndices = smallerCharMap.get(sChar);
                     const moreIndices = (
-                        queryIndices.length > targetIndices.length?
-                        queryIndices : targetIndices
+                        sIndices.length > bIndices.length?
+                        sIndices : bIndices
                         );
                     const lessIndices = (
-                        moreIndices === queryIndices?
-                        targetIndices : queryIndices 
+                        moreIndices === sIndices? 
+                        bIndices : sIndices 
                         );
                     let iMin = 0;
                     for (let j=0; j<lessIndices.length; j++) {
@@ -276,19 +266,24 @@ const FuzzierMatcher = (() => {
                             }
                         }
                         if (returnMatchedTargetIndicesInstead) {
-                            matchedTargetIndices.push(
-                                moreIndices === queryIndices? 
-                                lessIndex : moreIndex
-                                );                              
+                            if (biggerCharMap === queryCharMap) {
+                                if (moreIndices === sIndices) {
+                                    matchedTargetIndices.push(moreIndex);
+                                } else {
+                                    matchedTargetIndices.push(lessIndex);
+                                }
+                            } else {
+                                if (moreIndices === sIndices) {
+                                    matchedTargetIndices.push(lessIndex);
+                                } else {
+                                    matchedTargetIndices.push(moreIndex);
+                                }
+                            }
                         } else {
                             matchScore += SimilarityScore(
                                 lessIndex, moreIndex, 1, queryWord.length+1
                                 );
                         }
-                    }
-                    if ((remainingTargetIndices -= targetIndices.length) 
-                    === 0) {
-                        break;
                     }
                 }
             }
@@ -455,8 +450,7 @@ const FuzzierMatcher = (() => {
                     const word = queryWordList[i];
                     if (queryWordMultiSet.pop(word) === 0) {
                         queryWordScoreWeights.delete(word);
-                        queryWordCharLists.delete(word);
-                        queryWordCharIndicesLists.delete(word);
+                        queryWordCharMaps.delete(word);
                         queryWordMatchScoreMaps.delete(word);
                         queryWordMatchedTargetIndicesMaps.delete(word);
                     }
@@ -511,6 +505,7 @@ const FuzzierMatcher = (() => {
                 queryWordMatchScoreMaps.clear();
                 queryWordMatchedTargetIndicesMaps.clear();
                 queryWordScoreWeights.clear();
+                queryWordCharMaps.clear();
                 targetWordMultiSet.clear();
                 targetWordCharMaps.clear();
                 targetWordStrMultiSet.clear();
