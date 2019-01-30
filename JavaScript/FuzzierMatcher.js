@@ -388,7 +388,6 @@ const FuzzierMatcher = (() => {
                                     .get(smallWordList[i])
                             );
                     }
-                    return targetWordMatchedIndicesList;
                 } else {
                     for (let i=0; i<smallBigIndexList.length; i++) {
                         const j = smallBigIndexList[i];
@@ -477,12 +476,12 @@ const FuzzierMatcher = (() => {
                 if (targetStrWordStrs.has(targetStr)) {
                     const wordStr = targetStrWordStrs.get(targetStr);
                     targetStrWordStrs.delete(targetStr);
+                    const wordList = targetWordStrWordLists.get(wordStr);
                     if (targetWordStrMultiSet.pop(wordStr) === 0) {
+                        targetWordStrWordLists.delete(wordStr);
                         targetWordStrMatchScores.delete(wordStr);
                         targetWordStrWordMatchedIndicesLists.delete(wordStr);
                     }
-                    const wordList = targetWordStrWordLists.get(wordStr);
-                    targetWordStrWordLists.delete(wordStr);
                     for (let i=0; i<wordList.length; i++) {
                         const word = wordList[i];
                         if (targetWordMultiSet.pop(word) === 0) {
