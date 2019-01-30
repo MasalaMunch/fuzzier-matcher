@@ -513,7 +513,6 @@ const FuzzierMatcher = (() => {
                 targetStrMatchedIndices.clear();
             },
             };
-            return This;
 
     };
     
