@@ -462,7 +462,10 @@ const FuzzierMatcher = (() => {
                         maxWordLen = len;
                     }
                 }
-                bonusScoreWeight = 1/(1+queryWordList.length**2*(1+maxWordLen));
+                bonusScoreWeight = (
+                    1 / (1 + queryWordList.length * queryWordList.length 
+                         * (1 + maxWordLen))
+                    );
             },
             getScore: (targetStr) => {
                 return targetWordStrMatchScores.get(
