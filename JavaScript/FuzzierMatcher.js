@@ -36,51 +36,44 @@ const FuzzierMatcher = (() => {
 
     const MaxHeap = (compareItems, array) => {
         const fixChildren = (i, item) => {
-            const iLeftChild = (i<<1) + 1;
-            if (iLeftChild < array.length) {
-                const leftChildItem = array[iLeftChild];
-                let iMaxChild;
-                let maxChildItem;
-                const iRightChild = iLeftChild + 1;
-                if (iRightChild < array.length) {
-                    const rightChildItem = array[iRightChild];
-                    if (compareItems(rightChildItem, leftChildItem) > 0) {
-                        iMaxChild = iRightChild;
-                        maxChildItem = rightChildItem;
+            while (true) {
+                const iLeftChild = (i<<1) + 1;
+                if (iLeftChild < array.length) {
+                    const leftChildItem = array[iLeftChild];
+                    let iMaxChild;
+                    let maxChildItem;
+                    const iRightChild = iLeftChild + 1;
+                    if (iRightChild < array.length) {
+                        const rightChildItem = array[iRightChild];
+                        if (compareItems(rightChildItem, leftChildItem) > 0) {
+                            iMaxChild = iRightChild;
+                            maxChildItem = rightChildItem;
+                        } else {
+                            iMaxChild = iLeftChild;
+                            maxChildItem = leftChildItem;
+                        }
                     } else {
                         iMaxChild = iLeftChild;
                         maxChildItem = leftChildItem;
                     }
+                    if (compareItems(maxChildItem, item) > 0) {
+                        array[i] = maxChildItem;
+                        i = iMaxChild;
+                    } else {
+                        break;
+                    }               
                 } else {
-                    iMaxChild = iLeftChild;
-                    maxChildItem = leftChildItem;
-                }
-                if (compareItems(maxChildItem, item) > 0) {
-                    array[i] = maxChildItem;
-                    return iMaxChild;
-                } else {
-                    return undefined;
-                }               
-            } else {
-                return undefined;
-            }
-        };
-        for (let i=(array.length-2)>>1; i>=0; i--) {
-            const item = array[i];
-            array[fixChildren(i, item)] = item;
-        }
-        const fixAllChildren = (i, item) => {
-            while (true) {
-                const iNew = fixChildren(i, item);
-                if (iNew === undefined) {
-                    array[i] = item;
                     break;
                 }
-                i = iNew;
             }
+            array[i] = item;
         };
+        for (let i=(array.length-2)>>1; i>=0; i--) {
+            fixChildren(i, array[i]);
+        }
         return {
-            Max: () => array[0], delMax: () => fixAllChildren(0, array.pop()),
+            Max: () => array[0],
+            delMax: () => fixChildren(0, array.pop()),
             };
     };
 
