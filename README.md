@@ -38,8 +38,8 @@ A string matching algorithm inspired by Forrest Smith's [fuzzy match](https://bl
 
 `fuzzierMatcher.setQuery(queryString)`
 
-* For example, if the user types `I want to find this` in the search box, you'll want to use `setQuery("I want to find this")`. 
-* Performance-wise, this method is "smart," in that if the previous query was `I want to find thi`, it will detect that only one word has changed (`thi` -> `this`) and update the cache accordingly.
+* For example, if the user types `Some words` in the search box, you'll want to use `setQuery("Some words")`. 
+* Performance-wise, this method is "smart," in that if the previous query was `Some word`, it will detect that only one word has changed (`word` -> `words`) and update the cache accordingly.
 
 `fuzzierMatcher.getScore(targetString) -> float`
 
