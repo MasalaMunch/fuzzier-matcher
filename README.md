@@ -13,7 +13,7 @@ A string matching algorithm inspired by Forrest Smith's [fuzzy match](https://bl
 
 ## Demo
 
-* [queueshare.com/FuzzierMatcherDemo](https://queueshare.com/FuzzierMatcherDemo)
+* [queueshare.com/FuzzierMatcherDemo/play](https://queueshare.com/FuzzierMatcherDemo/play)
 
 ## Basic Usage
 
