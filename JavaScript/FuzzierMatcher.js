@@ -187,17 +187,14 @@ const FuzzierMatcher = (() => {
         return Math.max(minScore, maxScore - Math.abs(numberA - numberB));
     };
 
-    const WordScoreWeight = (word) => 1 / (1 + word.length);
-
     return (WordList=DefaultWordList, WordStr=DefaultWordStr, 
             WordSrcIndicesList=DefaultWordSrcIndicesList) => {
 
         let queryWordList = [];
-        const queryWordMultiSet = MultiSet();
-        const queryWordScoreWeights = LazyMap(WordScoreWeight);
-        const queryWordCharMaps = LazyMap(CharMap);
         let bonusScoreWeight = 1;
-
+        const queryWordMultiSet = MultiSet();
+        const queryWordScoreWeights = LazyMap((word) => 1 / (1 + word.length));
+        const queryWordCharMaps = LazyMap(CharMap);
 
         const WordMatchScore = (queryWord, targetWord, 
                                 returnMatchedTargetIndicesInstead) => {
@@ -231,11 +228,11 @@ const FuzzierMatcher = (() => {
                     let iMin = 0;
                     for (let j=0; j<lessIndices.length; j++) {
                         const lessIndex = lessIndices[j];
-                        const iMaxCache = (
+                        let iMax = (
                             moreIndices.length - lessIndices.length + j
                             );
-                        let iMax = iMaxCache;
                         const iMinCache = iMin;
+                        const iMaxCache = iMax;
                         let moreIndex;
                         while (iMax >= iMin) {
                             const iTest = iMin + ((iMax-iMin)>>1);
@@ -341,15 +338,17 @@ const FuzzierMatcher = (() => {
                 for (let j=0; j<bigWordList.length; j++) {
                     bigListIndices[j] = j;
                     scores[j] = (
-                        (bigWordList === queryWordList? 
-                         queryWordMatchScoreMaps.get(bigWordList[j])
-                             .get(smallWordList[i])
-                         : queryWordMatchScoreMaps.get(smallWordList[i])
-                             .get(bigWordList[j]))
-                        + bonusScoreWeight * SimilarityScore(
-                            i, j, 0, queryWordList.length
-                            )
+                        bigWordList === queryWordList? 
+                        queryWordMatchScoreMaps.get(bigWordList[j])
+                            .get(smallWordList[i])
+                        : queryWordMatchScoreMaps.get(smallWordList[i])
+                            .get(bigWordList[j])
                         );
+                    if (scores[j] > 0) {
+                        scores[j] += bonusScoreWeight * SimilarityScore(
+                            i, j, 0, queryWordList.length
+                            );
+                    }
                 }
                 smallBigListIndexHeapList[i] = MaxHeap(
                     (j, k) => scores[j] - scores[k], bigListIndices
@@ -364,14 +363,16 @@ const FuzzierMatcher = (() => {
                 while (true) {
                     const j = bigListIndexHeap.Max();
                     const iConflict = bigSmallIndexList[j];
-                    if (iConflict === undefined || smallScoresList[i][j] 
-                    > smallScoresList[iConflict][j]) {
+                    if (iConflict === undefined) {
                         smallBigIndexList[i] = j;
                         bigSmallIndexList[j] = i;
-                        if (iConflict !== undefined) {
-                            smallBigListIndexHeapList[iConflict].delMax();
-                            unpairedSmallListIndices.push(iConflict);
-                        }
+                        break;
+                    }
+                    if (smallScoresList[i][j] > smallScoresList[iConflict][j]) {
+                        smallBigIndexList[i] = j;
+                        bigSmallIndexList[j] = i;
+                        smallBigListIndexHeapList[iConflict].delMax();
+                        unpairedSmallListIndices.push(iConflict);
                         break;
                     }
                     bigListIndexHeap.delMax();
