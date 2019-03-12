@@ -10,7 +10,7 @@ A string matching algorithm inspired by Forrest Smith's [fuzzy match](https://bl
 
 ## How does it work?
 
-* To determine the similarity of two words, such as (`"toon", "bono"`), it pairs indices that contain the same character in a way that minimizes distance, such as `((1, 1), (2, 3), (3, 2))`. Each of these pairs receives a similarity score ∈ (0, 1], such as `(4/4, 3/4, 3/4)`, and those scores are summed, producing a similarity score of `2.5` for `("toon", "bono")`.
+* To determine the similarity of two words, such as `("toon", "bono")`, it pairs indices that contain the same character in a way that minimizes distance, such as `((1, 1), (2, 3), (3, 2))`. Each pair receives a similarity score ∈ (0, 1], such as `(4/4, 3/4, 3/4)`. The scores are then summed, producing a similarity score of `2.5` for `("toon", "bono")`.
 * To determine the similarity of two strings, such as `("toon bono", " rono foon")`, it creates two word lists, such as `(("toon, bono"), ("rono", "foon"))`, and pairs words in a way that maximizes the sum of the pairings' similarity scores, such as `((0, 1), (1, 0))`, with words whose indices are similar, such as `("toon", "rono")` receiving a slight score bonus.
 	
 ## How fast is it?
@@ -20,7 +20,7 @@ A string matching algorithm inspired by Forrest Smith's [fuzzy match](https://bl
 ## Demo
 
 * [queueshare.com/FuzzierMatcherDemo/play](https://queueshare.com/FuzzierMatcherDemo/play)
-* Note: I've realized the demo is slow not because of the matching algorithm, but because it draws too many results onto the screen. This will be fixed in the next QueueShare update.
+* I've realized the demo is slow not because of the matching algorithm, but because it draws too many results onto the screen. This will be fixed in the next QueueShare update.
 
 ## Basic Usage
 
