@@ -7,6 +7,12 @@ A string matching algorithm inspired by Forrest Smith's [fuzzy match](https://bl
 * Typos don't prevent a strong match. For example, `vrockhampton` will match strongly with `brockhampton`.
 * Incorrect word orderings don't prevent a strong match. For example, `honey brockhampton` will match strongly with `brockhampton honey`.
 
+
+## How does it work?
+
+* To determine the similarity of two words, such as (`"toon", "bono"`), it pairs indices that contain the same character in a way that minimizes distance, such as `((1, 1), (2, 3), (3, 2))`. Each of these pairs receives a similarity score ∈ (0, 1], such as `(4/4, 3/4, 3/4)`, and those scores are summed, producing a similarity score of `2.5` for `("toon", "bono")`.
+* To determine the similarity of two strings, such as `("toon bono", " rono foon")`, it creates two word lists, such as `(("toon, bono"), ("rono", "foon"))`, and pairs words in a way that maximizes the sum of the pairings' similarity scores, such as `((0, 1), (1, 0))`, with words whose indices are similar, such as `("toon", "rono")` receiving a slight score bonus.
+	
 ## How fast is it?
 
 * The JavaScript implementation can query up to 10,000 5-word strings (&#126;500,000 characters) in real time on [my laptop](https://browser.geekbench.com/macs/437).
@@ -14,6 +20,7 @@ A string matching algorithm inspired by Forrest Smith's [fuzzy match](https://bl
 ## Demo
 
 * [queueshare.com/FuzzierMatcherDemo/play](https://queueshare.com/FuzzierMatcherDemo/play)
+* Note: I've realized the demo is slow not because of the matching algorithm, but because it draws too many results onto the screen. This will be fixed in the next QueueShare update.
 
 ## Basic Usage
 
@@ -34,7 +41,7 @@ A string matching algorithm inspired by Forrest Smith's [fuzzy match](https://bl
 * The optional parameters allow you to customize the preprocessing of strings. By default, strings are converted to lowercase and split by whitespace (see `DefaultWordList`, `DefaultWordStr`, and `DefaultWordSrcIndicesList` in the source code). When customizing, 
     * `WordList` must be a `(string) -> stringArray` function.
     * `WordStr` must be a `(stringArray) -> string` function. It will be used to serialize the output of `WordList`.
-    * `WordSrcIndicesList` must be a `(string, stringArray) -> intArrayArray` function. It will be used if you call `fuzzierMatcher.getIndices`. It can be thought of as a way to map the output of a `WordList` call back onto its input string. For example, `DefaultWordSrcIndicesList(" My string", ["my", "string"])` returns `[[1, 2], [4, 5, 6, 7, 8, 9]]`.
+    * `WordSrcIndicesList` must be a `(string, stringArray) -> intArrayArray` function. It will be used if you call `getIndices`. It can be thought of as a way to map the output of a `WordList` call back onto its input string. For example, `DefaultWordSrcIndicesList("  My String", ["my", "string"])` returns `[[2, 3], [5, 6, 7, 8, 9, 10]]`.
 
 `fuzzierMatcher.setQuery(queryString)`
 
