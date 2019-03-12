@@ -41,7 +41,7 @@ A string matching algorithm inspired by Forrest Smith's [fuzzy match](https://bl
 * The optional parameters allow you to customize the preprocessing of strings. By default, strings are converted to lowercase and split by whitespace (see `DefaultWordList`, `DefaultWordStr`, and `DefaultWordSrcIndicesList` in the source code). When customizing, 
     * `WordList` must be a `(string) -> stringArray` function.
     * `WordStr` must be a `(stringArray) -> string` function. It will be used to serialize the output of `WordList`.
-    * `WordSrcIndicesList` must be a `(string, stringArray) -> intArrayArray` function. It will be used if you call `getIndices`. It can be thought of as a way to map the output of a `WordList` call back onto its input string. For example, `DefaultWordSrcIndicesList("  My String", ["my", "string"])` returns `[[2, 3], [5, 6, 7, 8, 9, 10]]`.
+    * `WordSrcIndicesList` must be a `(string, stringArray) -> intArrayArray` function. It will be used if you call `getIndices`. It can be thought of as a way to map the output of a `WordList` call back onto its input string. For example, `DefaultWordSrcIndicesList(" My String", ["my", "string"])` returns `[[1, 2], [4, 5, 6, 7, 8, 9]]`.
 
 `fuzzierMatcher.setQuery(queryString)`
 
