@@ -20,7 +20,6 @@ A string matching algorithm inspired by Forrest Smith's [fuzzy match](https://bl
 ## Demo
 
 * [queueshare.com/FuzzierMatcherDemo/play](https://queueshare.com/FuzzierMatcherDemo/play)
-* I've realized the demo is slow not because of the matching algorithm, but because it draws too many results onto the screen. This will be fixed in the next QueueShare update.
 
 ## Basic Usage
 
