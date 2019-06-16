@@ -4,19 +4,21 @@ const FuzzierMatcher = (() => {
 
     const MultiSet = () => {
         const This = new Map();
-        This.get = (item) => {
-            const itemCount = Map.prototype.get.call(This, item);
-            return itemCount === undefined? 0 : itemCount;
+        This.push = (item) => {
+            const count = This.get(item);
+            This.set(item, count === undefined? 1 : count+1);
         };
-        This.push = (item) => This.set(item, This.get(item)+1);
         This.pop = (item) => {
-            const itemCount = This.get(item)-1;
-            if (itemCount < 1) {
-                This.delete(item);
+            let count = This.get(item);
+            if (count === undefined) {
                 return 0;
             }
-            This.set(item, itemCount);
-            return itemCount;
+            if (--count === 0) {
+                This.delete(item);
+            } else {
+                This.set(item, count);
+            }
+            return count;
         };
         return This;
     };
@@ -126,105 +128,127 @@ const FuzzierMatcher = (() => {
 
     };
 
-    const MatchScore = (() => {
+    return (WordList=DefaultWordList, WordStr=DefaultWordStr, 
+            WordSrcIndicesList=DefaultWordSrcIndicesList) => {
 
-        const IntArray = Uint32Array;
-        const undefinedIndex = -1;
-
-        return (lil, big, Subscore) => {
-
-            if (lil.length > big.length) {
-                const tmp = lil;
-                lil = big;
-                big = tmp;
+        const intArrayAllocator = new Map();
+        intArrayAllocator.get = (len) => {
+            const freeArrays = Map.prototype.get.call(intArrayAllocator, len);
+            if (freeArrays === undefined || freeArrays.length === 0) {
+                return new Int32Array(len);
             }
-
-            const bigToLil = new IntArray(big.length);
-            const lilToBig = new IntArray(lil.length);
-            const unpairedLilIndices = new IntArray(lil.length);
-
-            let i;
-
-            i = big.length;
-            while (i--) {
-                bigToLil[i] = undefinedIndex;
+            return freeArrays.pop();
+        };
+        intArrayAllocator.free = (array) => {
+            const freeArrays = Map.prototype.get.call(intArrayAllocator, 
+                array.length);
+            if (freeArrays === undefined) {
+                intArrayAllocator.set(array.length, [array]);
             }
-            i = lil.length;
-            while (i--) {
-                lilToBig[i] = undefinedIndex;
-            }
-            i = lil.length;
-            while (i--) {
-                unpairedLilIndices[i] = i;
-            }
+            freeArrays.push(array); 
+        };
 
-            i = lil.length;
-            while (i--) {
+        const MatchScore = (() => {
 
-                const lilIndex = unpairedLilIndices[i];
-                let chosenBigIndex, chosenLilConflictIndex;
+            const undefinedIndex = -1;
 
-                let maxSubscore = 0;
-                let bigIndex = big.length;
-                while (bigIndex--) {
-                    const subscore = Subscore(bigIndex, lilIndex, big, lil);
-                    if (subscore > maxSubscore) {
-                        const lilConflictIndex = bigToLil[bigIndex];
-                        if (lilConflictIndex === undefinedIndex || subscore > 
-                        Subscore(bigIndex, lilConflictIndex, big, lil)) {
-                            chosenBigIndex = bigIndex;
-                            chosenLilConflictIndex = lilConflictIndex;
-                            maxSubscore = subscore;
+            return (lil, big, Subscore) => {
+
+                if (lil.length > big.length) {
+                    const tmp = lil;
+                    lil = big;
+                    big = tmp;
+                }
+
+                const bigToLil = intArrayAllocator.get(big.length);
+                const lilToBig = intArrayAllocator.get(lil.length);
+                const unpairedLilIndices = intArrayAllocator.get(lil.length);
+                //TODO implement array caching
+
+                let i;
+
+                i = big.length;
+                while (i--) {
+                    bigToLil[i] = undefinedIndex;
+                }
+                i = lil.length;
+                while (i--) {
+                    lilToBig[i] = undefinedIndex;
+                }
+                i = lil.length;
+                while (i--) {
+                    unpairedLilIndices[i] = i;
+                }
+
+                i = lil.length;
+                while (i--) {
+
+                    const lilIndex = unpairedLilIndices[i];
+                    let chosenBigIndex, chosenLilConflictIndex;
+
+                    let maxSubscore = 0;
+                    let bigIndex = big.length;
+                    while (bigIndex--) {
+                        const subscore = Subscore(bigIndex, lilIndex, big, lil);
+                        if (subscore > maxSubscore) {
+                            const lilConflictIndex = bigToLil[bigIndex];
+                            if (lilConflictIndex === undefinedIndex || 
+                            subscore > Subscore(bigIndex, lilConflictIndex, big, 
+                            lil)) {
+                                chosenBigIndex = bigIndex;
+                                chosenLilConflictIndex = lilConflictIndex;
+                                maxSubscore = subscore;
+                            }
                         }
+                    }
+
+                    if (chosenBigIndex !== undefined) {
+                        bigToLil[chosenBigIndex] = lilIndex;
+                        lilToBig[lilIndex] = chosenBigIndex;
+                        if (chosenLilConflictIndex !== undefinedIndex) {
+                            lilToBig[chosenLilConflictIndex] = undefinedIndex;
+                            unpairedLilIndices[i++] = chosenLilConflictIndex;
+                        }                
+                    }
+
+                }
+
+                let score = 0;
+                i = lil.length;
+                while (i--) {
+                    if (lilToBig[i] !== undefinedIndex) {
+                        score += Subscore(lilToBig[i], i, big, lil);
                     }
                 }
 
-                if (chosenBigIndex !== undefined) {
-                    bigToLil[chosenBigIndex] = lilIndex;
-                    lilToBig[lilIndex] = chosenBigIndex;
-                    if (chosenLilConflictIndex !== undefinedIndex) {
-                        lilToBig[chosenLilConflictIndex] = undefinedIndex;
-                        unpairedLilIndices[i++] = chosenLilConflictIndex;
-                    }                
-                }
+                intArrayAllocator.free(bigToLil);
+                intArrayAllocator.free(lilToBig);
+                intArrayAllocator.free(unpairedLilIndices);
+                return score;
 
-            }
+                //TODO implement returning of match information
 
-            let score = 0;
-            i = lil.length;
-            while (i--) {
-                if (lilToBig[i] !== undefinedIndex) {
-                    score += Subscore(lilToBig[i], i, big, lil);
-                }
-            }
-            return score;
+                // if (returnWordMatchedIndicesListInstead) {
+                //     const This = new Array(targetWordList.length);
+                //     if (bigWordList === queryWordList) {
+                //         for (let i=0; i<smallBigIndexList.length; i++) {
+                //             This[i] = queryWordMatchedTargetIndicesMaps
+                //                 .get(bigWordList[smallBigIndexList[i]])
+                //                     .get(smallWordList[i]);
+                //         }
+                //     } else {
+                //         for (let i=0; i<smallBigIndexList.length; i++) {
+                //             const j = smallBigIndexList[i];
+                //             This[j] = queryWordMatchedTargetIndicesMaps
+                //                 .get(smallWordList[i]).get(bigWordList[j]);
+                //         }  
+                //     }
+                //     return This;
+                // }
 
-            //TODO implement returning of match information
+            };
 
-            // if (returnWordMatchedIndicesListInstead) {
-            //     const This = new Array(targetWordList.length);
-            //     if (bigWordList === queryWordList) {
-            //         for (let i=0; i<smallBigIndexList.length; i++) {
-            //             This[i] = queryWordMatchedTargetIndicesMaps
-            //                 .get(bigWordList[smallBigIndexList[i]])
-            //                     .get(smallWordList[i]);
-            //         }
-            //     } else {
-            //         for (let i=0; i<smallBigIndexList.length; i++) {
-            //             const j = smallBigIndexList[i];
-            //             This[j] = queryWordMatchedTargetIndicesMaps
-            //                 .get(smallWordList[i]).get(bigWordList[j]);
-            //         }  
-            //     }
-            //     return This;
-            // }
-
-        };
-
-    })();
-
-    return (WordList=DefaultWordList, WordStr=DefaultWordStr, 
-            WordSrcIndicesList=DefaultWordSrcIndicesList) => {
+        })();
 
         let queryWordList = [];
         const queryWordMultiSet = MultiSet();
@@ -377,6 +401,7 @@ const FuzzierMatcher = (() => {
                 }
             },
             clear: () => {
+                intArrayAllocator.clear();
                 queryWordMatchScoreMaps.clear();
                 queryWordMatchedTargetIndicesMaps.clear();
                 targetWordMultiSet.clear();
