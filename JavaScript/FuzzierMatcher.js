@@ -132,20 +132,21 @@ const FuzzierMatcher = (() => {
             WordSrcIndicesList=DefaultWordSrcIndicesList) => {
 
         const intArrayAllocator = new Map();
-        intArrayAllocator.get = (len) => {
-            const freeArrays = Map.prototype.get.call(intArrayAllocator, len);
+        intArrayAllocator.take = (length) => {
+            const freeArrays = intArrayAllocator.get(length);
             if (freeArrays === undefined || freeArrays.length === 0) {
-                return new Int32Array(len);
+                return new Int32Array(length);
             }
             return freeArrays.pop();
         };
-        intArrayAllocator.free = (array) => {
-            const freeArrays = Map.prototype.get.call(intArrayAllocator, 
-                array.length);
+        intArrayAllocator.give = (array) => {
+            const freeArrays = intArrayAllocator.get(array.length);
             if (freeArrays === undefined) {
                 intArrayAllocator.set(array.length, [array]);
             }
-            freeArrays.push(array); 
+            else {
+                freeArrays.push(array); 
+            }
         };
 
         const MatchScore = (() => {
@@ -160,10 +161,9 @@ const FuzzierMatcher = (() => {
                     big = tmp;
                 }
 
-                const bigToLil = intArrayAllocator.get(big.length);
-                const lilToBig = intArrayAllocator.get(lil.length);
-                const unpairedLilIndices = intArrayAllocator.get(lil.length);
-                //TODO implement array caching
+                const bigToLil = intArrayAllocator.take(big.length);
+                const lilToBig = intArrayAllocator.take(lil.length);
+                const unpairedLilIndices = intArrayAllocator.take(lil.length);
 
                 let i;
 
@@ -221,9 +221,9 @@ const FuzzierMatcher = (() => {
                     }
                 }
 
-                intArrayAllocator.free(bigToLil);
-                intArrayAllocator.free(lilToBig);
-                intArrayAllocator.free(unpairedLilIndices);
+                intArrayAllocator.give(bigToLil);
+                intArrayAllocator.give(lilToBig);
+                intArrayAllocator.give(unpairedLilIndices);
                 return score;
 
                 //TODO implement returning of match information
