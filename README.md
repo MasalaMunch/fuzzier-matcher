@@ -11,7 +11,7 @@ A string matching algorithm inspired by Forrest Smith's [fuzzy match](https://bl
 ## How does it work?
 
 * To determine the similarity of two words, such as `("toon", "bono")`, it pairs indices that contain the same character in a way that minimizes distance, such as `((1, 1), (2, 3), (3, 2))`. Each pair receives a similarity score ∈ (0, 1], such as `(4/4, 3/4, 3/4)`. The scores are then summed, producing a similarity score of `2.5` for `("toon", "bono")`. This process takes O(nlogm) time and O(m+n) space, where n and m are the minimum and maximum lengths of the two words.
-* To determine the similarity of two strings, such as `("toon bono", " rono foon")`, it creates two word lists, such as `(("toon, bono"), ("rono", "foon"))`, and pairs words in a way that maximizes the sum of the pairings' similarity scores, such as `((0, 1), (1, 0))`, with words pairings whose indices are similar receiving a slight score bonus. This process takes O(nmlogm) time and O(nm) space, where n and m are the minimum and maximum word counts of the two strings.
+* To determine the similarity of two strings, such as `("toon bono", " rono foon")`, it creates two word lists, such as `(("toon, bono"), ("rono", "foon"))`, and pairs words in a way that maximizes the sum of the pairings' similarity scores, such as `((0, 1), (1, 0))`, with word pairings whose indices are similar receiving a slight score bonus. This process takes O(nmlogm) time and O(nm) space, where n and m are the minimum and maximum word counts of the two strings.
 
 ## How fast is it?
 
@@ -50,7 +50,7 @@ A string matching algorithm inspired by Forrest Smith's [fuzzy match](https://bl
 
 `fuzzierMatcher.getIndices(targetString) -> intArray`
 
-* In the demo, this is called on the 10 strongest-matching target strings in order to highlight which of their letters match the query string.
+* Returns which indices of `targetString` match the query string.
 * Indices are cached in a manner similar to `getScore`.
 
 `fuzzierMatcher.getAsyncWorker(iterator, processItem, onFinish, [targetFps]) -> asyncWorker`
