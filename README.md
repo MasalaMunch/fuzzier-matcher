@@ -1,6 +1,6 @@
 # FuzzierMatcher
 
-An approximate string comparison algorithm inspired by Forrest Smith's [fuzzy match](https://blog.forrestthewoods.com/reverse-engineering-sublime-text-s-fuzzy-match-4cffeed33fdb).
+An approximate string comparison library inspired by Forrest Smith's [fuzzy match](https://blog.forrestthewoods.com/reverse-engineering-sublime-text-s-fuzzy-match-4cffeed33fdb).
 
 ## What makes it fuzzier?
 
